@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from src.api.routers.over_task_routers import router as over_task_router
+from src.api.routers.tasks_routers import router as tasks_router
 
 
 def init_routers(app_: FastAPI) -> None:
-    app_.include_router(over_task_router)
+    app_.include_router(tasks_router)

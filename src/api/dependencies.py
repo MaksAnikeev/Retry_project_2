@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException
 
 from src.db import async_session_factory
-from src.services.http_client import TaskServiceClient
+from src.external_clients.http_client import TaskServiceClient
 from src.utils.db_manager import DBManager
 
 

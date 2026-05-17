@@ -22,30 +22,21 @@ class CircuitBreakerError(Exception):
 
 
 class CircuitBreaker:
-    """
-    Принцип работы:
-    • CLOSED: запросы идут нормально, считаем ошибки
-    • OPEN: все запросы сразу падают с CircuitBreakerError
-    • HALF_OPEN: один тестовый запрос
-      - Успех → CLOSED
-      - Ошибка → снова OPEN
-    """
-
     def __init__(
         self,
-        failure_threshold: int = 5,  # ошибок до открытия
-        recovery_timeout: int = 30,  # секунд в состоянии OPEN
+        failure_threshold: int = 5,
+        recovery_timeout: int = 30,
         name: str = "default",
         expected_exceptions: tuple = (
                 ConnectionError,
                 TimeoutError,
-                ClientConnectorError,  # Не может подключиться
-                ClientConnectionError,  # Общее соединение
-                ServerDisconnectedError,  # Сервер оборвал соединение
-                AsyncTimeoutError,  # Таймаут asyncio
+                ClientConnectorError,
+                ClientConnectionError,
+                ServerDisconnectedError,
+                AsyncTimeoutError,
                 ClientOSError,
                 AsyncTimeoutError
-        )  # Какие ошибки считаем
+        )
     ):
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
@@ -83,7 +74,6 @@ class CircuitBreaker:
             await self._on_failure()
             raise
         except Exception as e:
-            # Неожиданная ошибка — не считаем как сбой сервиса
             logger.warning(f"⚠️ [{self.name}] Неожиданная ошибка (не считается для CB): {type(e).__name__}")
             raise
 

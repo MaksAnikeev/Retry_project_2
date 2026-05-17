@@ -1,7 +1,7 @@
 from src.exceptions import ObjectNotFoundException, UserNotFoundException, TaskNotFoundException, \
     TooManyObjectsException
-from src.retry_logic.circuit_breaker import CircuitBreaker
-from src.services.http_client import TaskServiceClient
+from src.utils.circuit_breaker import CircuitBreaker
+from src.external_clients.http_client import TaskServiceClient
 from src.utils.db_manager import DBManager
 
 

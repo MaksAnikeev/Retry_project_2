@@ -11,7 +11,7 @@ from src.api import dependencies
 from src.api.routers.routers import init_routers
 from src.config import settings
 from src.db import async_session_factory_null_pull
-from src.services.http_client import TaskServiceClient
+from src.external_clients.http_client import TaskServiceClient
 
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -37,22 +37,14 @@ def get_app() -> FastAPI:
             )
             raise RuntimeError(f"Ошибка подключения к БД: {e}") from e
 
-        # Инициализация клиента — ЧЕРЕЗ МОДУЛЬ
-        dependencies._task_client = TaskServiceClient(
+        async with TaskServiceClient(
             base_url=settings.TASK_SERVICE_URL,
             timeout=30,
-        )
-        logging.info(f"✅ Client ready: {dependencies._task_client.base_url}")
-
-        yield
-
-        if dependencies._task_client:
-            try:
-                await dependencies._task_client.close()
-            except Exception as e:
-                logging.warning(f"Error closing HTTP client: {e}")
-            finally:
-                dependencies._task_client = None
+        ) as client:
+            dependencies._task_client = client
+            logging.info(f"✅ Client ready: {client.base_url}")
+            yield
+            dependencies._task_client = None
 
 
     app = FastAPI(
