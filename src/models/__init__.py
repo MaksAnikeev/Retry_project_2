@@ -1,6 +1,7 @@
-from src.models.over_tasks import OverdueTasksORM
-
+from src.models.base import Base
+from src.models.reports import ReportsORM
 
 all = [
-    OverdueTasksORM,
+    ReportsORM,
+    Base
 ]

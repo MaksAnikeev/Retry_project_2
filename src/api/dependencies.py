@@ -1,29 +1,31 @@
-from typing import Annotated
+from typing import Annotated, AsyncGenerator
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import async_session_factory
-from src.external_clients.http_client import TaskServiceClient
-from src.utils.db_manager import DBManager
+from src.repositories.report_rep import ReportRepository
+from src.services.report_service import ReportService
 
 
-# Глобальный HTTP клиент (заполняется в lifespan)
-_task_client: TaskServiceClient | None = None
+async def get_session() -> AsyncGenerator[AsyncSession]:
+    async with async_session_factory() as session:
+        yield session
 
-def get_task_client() -> TaskServiceClient:
-    """Dependency для получения HTTP клиента"""
-    if _task_client is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Task Service Client not initialized",
-        )
-    return _task_client
-
-TaskClientDep = Annotated[TaskServiceClient, Depends(get_task_client)]
+SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
 
-async def get_db():
-    async with DBManager(session_factory=async_session_factory) as db:
-        yield db
+def get_report_rep(session: SessionDep) -> ReportRepository:
+    return ReportRepository(session=session)
 
-DBDep = Annotated[DBManager, Depends(get_db)]
+ReportRepDep = Annotated[ReportRepository, Depends(get_report_rep)]
+
+
+def get_report_service(
+    report_rep: ReportRepDep,
+) -> ReportService:
+    return ReportService(
+        report_rep=report_rep,
+    )
+
+ReportServiceDep = Annotated[ReportService, Depends(get_report_service)]

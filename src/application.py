@@ -7,11 +7,9 @@ import logging
 from pathlib import Path
 from sqlalchemy import text
 
-from src.api import dependencies
-from src.api.routers.routers import init_routers
-from src.config import settings
+from src.api.routers.reports_routers import router as report_router
+from src.api.routers.health_routers import router as health_router
 from src.db import async_session_factory_null_pull
-from src.external_clients.http_client import TaskServiceClient
 
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -25,33 +23,10 @@ def get_app() -> FastAPI:
     :return: application.
     """
 
-    @asynccontextmanager
-    async def lifespan(app: FastAPI):
-        try:
-            async with async_session_factory_null_pull() as session:
-                await session.execute(text("SELECT 1"))
-                logging.info("Подключение к базе данных успешно проверено")
-        except Exception as e:
-            logging.critical(
-                "Не удалось подключиться к базе данных при старте", exc_info=True
-            )
-            raise RuntimeError(f"Ошибка подключения к БД: {e}") from e
-
-        async with TaskServiceClient(
-            base_url=settings.TASK_SERVICE_URL,
-            timeout=30,
-        ) as client:
-            dependencies._task_client = client
-            logging.info(f"✅ Client ready: {client.base_url}")
-            yield
-            dependencies._task_client = None
-
-
     app = FastAPI(
         docs_url='/docs',
         openapi_url='/openapi.json',
         default_response_class=UJSONResponse,
-        lifespan=lifespan
     )
 
     app.add_middleware(
@@ -62,6 +37,7 @@ def get_app() -> FastAPI:
         allow_headers=['*'],
     )
 
-    init_routers(app_=app)
+    app.include_router(report_router)
+    app.include_router(health_router)
 
     return app

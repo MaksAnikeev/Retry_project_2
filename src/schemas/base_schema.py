@@ -1,12 +1,14 @@
 from pydantic import BaseModel, model_validator, ConfigDict
 
-from src.exceptions import NotAnyAttributeHTTPException, EmptyRequestBodyHTTPException
+from src.exceptions.exceptions import NotAnyAttributeHTTPException, EmptyRequestBodyHTTPException
 
 
 class ChangeBaseSchema(BaseModel):
     """Базовая схема для запросов с изменением - требует хотя бы одно поле"""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid",
+        use_enum_values=True)
 
     @model_validator(mode="after")
     def check_at_least_one_field(self):
