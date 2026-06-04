@@ -61,3 +61,9 @@ class ReportGetSchemas(BaseModel):
     complexity: Complexity = Field(..., description="Сложность выполняемой задачи")
     estimated_hours: float = Field(..., description="Время на выполнение задачи")
     priority: Priority = Field(..., description="Статус задачи")
+
+
+class ReportDeletedResponse(BaseModel):
+    status: str = Field(default="OK", description="Статус операции")
+    description: str = Field(description="Описание результата")
+    delete_report_info: ReportGetSchemas = Field(description="Информация по удаленному отчету")

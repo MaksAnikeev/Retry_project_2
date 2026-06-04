@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from typing import Annotated, AsyncGenerator
 
 from fastapi import Depends
@@ -8,9 +9,17 @@ from src.repositories.report_rep import ReportRepository
 from src.services.report_service import ReportService
 
 
+@asynccontextmanager
 async def get_session() -> AsyncGenerator[AsyncSession]:
     async with async_session_factory() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 

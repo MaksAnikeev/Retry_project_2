@@ -1,15 +1,14 @@
 from fastapi.responses import UJSONResponse
 from starlette.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
 import sys
 import logging
 from pathlib import Path
-from sqlalchemy import text
 
 from src.api.routers.reports_routers import router as report_router
 from src.api.routers.health_routers import router as health_router
-from src.db import async_session_factory_null_pull
+from src.exceptions import BaseDomainException
+from src.exceptions.handlers import domain_exception_handler
 
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -17,11 +16,6 @@ logging.basicConfig(level=logging.INFO)
 
 
 def get_app() -> FastAPI:
-    """
-    Get FastAPI application.
-    This is the main constructor of an application.
-    :return: application.
-    """
 
     app = FastAPI(
         docs_url='/docs',
@@ -39,5 +33,7 @@ def get_app() -> FastAPI:
 
     app.include_router(report_router)
     app.include_router(health_router)
+
+    app.add_exception_handler(BaseDomainException, domain_exception_handler)
 
     return app
