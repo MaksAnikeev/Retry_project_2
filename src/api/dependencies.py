@@ -9,7 +9,6 @@ from src.repositories.report_rep import ReportRepository
 from src.services.report_service import ReportService
 
 
-@asynccontextmanager
 async def get_session() -> AsyncGenerator[AsyncSession]:
     async with async_session_factory() as session:
         try:
