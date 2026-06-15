@@ -48,12 +48,12 @@ class ReportService:
     async def get_all_to_user(self, user_id: uuid.UUID) -> list[ReportGetSchemas]:
         await self.check_user_exists(user_id=user_id)
         reports = await self.report_rep.get_all_with_any_parameters(user_id=user_id)
-        return reports
+        return [ReportGetSchemas.model_validate(report, from_attributes=True) for report in reports]
 
     async def get_all_to_task(self, task_id: uuid.UUID) -> list[ReportGetSchemas]:
         await self.check_task_exists(task_id=task_id)
         reports = await self.report_rep.get_all_with_any_parameters(task_id=task_id)
-        return reports
+        return [ReportGetSchemas.model_validate(report, from_attributes=True) for report in reports]
 
     async def get_one(
         self,
@@ -63,7 +63,7 @@ class ReportService:
         if not report:
             logging.warning(f"Report with id {report_id} not found")
             raise ObjectNotFoundException
-        return report
+        return ReportGetSchemas.model_validate(report, from_attributes=True)
 
     async def add_report(
         self,
@@ -97,6 +97,8 @@ class ReportService:
                 priority=priority)
 
             report = await self.report_rep.add(report_info)
+            await self.report_rep.commit()
+            return ReportGetSchemas.model_validate(report, from_attributes=True)
 
         except IntegrityError as ex:
             await self.report_rep.rollback()
@@ -106,9 +108,6 @@ class ReportService:
             await self.report_rep.rollback()
             logging.error(f"{task_info.title} \n {str(e)}")
 
-        await self.report_rep.commit()
-        return report
-
     async def delete(
         self,
         report_id: int,
@@ -116,4 +115,4 @@ class ReportService:
         await self.check_report_exists(report_id=report_id)
         report = await self.report_rep.delete(id=id)
         await self.report_rep.commit()
-        return report
+        return ReportGetSchemas.model_validate(report, from_attributes=True)

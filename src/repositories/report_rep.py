@@ -3,6 +3,5 @@ from src.repositories.base import BaseRepository
 from src.schemas.reports_schemas import ReportGetSchemas
 
 
-class ReportRepository(BaseRepository):
+class ReportRepository(BaseRepository[ReportsORM, ReportGetSchemas]):
     model = ReportsORM
-    schemas = ReportGetSchemas
