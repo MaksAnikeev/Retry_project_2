@@ -35,6 +35,7 @@ class TaskAPIGetSchemas(BaseModel):
 
 
 class ReportChangeSchemas(ChangeBaseSchema):
+    task_id: uuid.UUID = Field(..., description="ИД задачи")
     complexity: Complexity | None = Field(None, description="Сложность выполняемой задачи")
     estimated_hours: float | None = Field(None, description="Время на выполнение задачи")
     priority: Priority | None = Field(None, description="Статус задачи")

@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     DB_PASS: str
     DB_NAME: str
 
+    LOG_LEVEL: str = "INFO"
+
     @property
     def DATABASE_URL_asyncpg(self) -> str:
         user = quote_plus(self.DB_USER)

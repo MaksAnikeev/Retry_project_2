@@ -30,18 +30,14 @@ class BaseRepository(Generic[Model, Schema]):
         result = query_result.scalars().one_or_none()
         return result
 
-    async def add(self, data: Schema) -> Model:
-        stmt = insert(self.model).values(**data.model_dump()).returning(self.model)
-        try:
-            result = await self.session.execute(stmt)
-            logging.info(f"Object created successfully. Data: {data.model_dump()}")
-            return result.scalars().one()
+    async def add_bulk(self, data_list: list[dict]) -> list[Model]:
+        if not data_list:
+            return []
 
-        except IntegrityError as ex:
-            logging.error(
-                f"Database integrity error: {ex.orig} | Input data: {data.model_dump()}"
-            )
-            raise
+        stmt = insert(self.model).values(data_list).returning(self.model)
+        result = await self.session.execute(stmt)
+        await self.session.flush()
+        return list(result.scalars().all())
 
     async def delete(self, **filters: Any) -> Model:
         query = select(self.model).filter_by(**filters)
