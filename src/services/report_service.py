@@ -2,9 +2,9 @@ import uuid
 from datetime import date
 import logging
 
-from sqlalchemy.exc import IntegrityError
-
 from src.schemas.reports_schemas import ReportDeletedResponse
+
+from src.repositories.unit_of_work import UnitOfWork
 from src.exceptions import ObjectNotFoundException
 from src.repositories.report_rep import ReportRepository
 from src.schemas.reports_schemas import (
@@ -23,8 +23,10 @@ class ReportService:
     def __init__(
         self,
         report_rep: ReportRepository,
+        uow: UnitOfWork,
     ) -> None:
         self.report_rep = report_rep
+        self.uow = uow
 
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -33,22 +35,21 @@ class ReportService:
         user = await self.report_rep.get_all_with_any_parameters(user_id=user_id)
         if not user:
             self.logger.warning("User not found", extra={"user_id": str(user_id)})
-            raise ObjectNotFoundException
+            raise ObjectNotFoundException(f"User with user_id {user_id} not found")
 
     async def check_task_exists(self, task_id: uuid.UUID) -> None:
         task = await self.report_rep.get_all_with_any_parameters(task_id=task_id)
         if not task:
             self.logger.warning("Task not found", extra={"task_id": str(task_id)})
-            raise ObjectNotFoundException
+            raise ObjectNotFoundException(f"Task with task_id:{task_id} not found")
 
     async def check_report_exists(self, report_id: int) -> None:
         report = await self.report_rep.one_or_none(id=report_id)
         if not report:
             self.logger.warning("Report not found", extra={"report_id": report_id})
-            raise ObjectNotFoundException
+            raise ObjectNotFoundException(f"Report with report_id {report_id} not found")
 
     async def get_all_to_user(self, user_id: uuid.UUID) -> list[ReportGetSchemas]:
-        self.logger.debug("Starting get_all_to_user", extra={"user_id": str(user_id)})
         await self.check_user_exists(user_id=user_id)
         reports = await self.report_rep.get_all_with_any_parameters(user_id=user_id)
         self.logger.debug(
@@ -58,7 +59,6 @@ class ReportService:
         return [ReportGetSchemas.model_validate(report, from_attributes=True) for report in reports]
 
     async def get_all_to_task(self, task_id: uuid.UUID) -> list[ReportGetSchemas]:
-        self.logger.debug("Starting get_all_to_task", extra={"task_id": str(task_id)})
         await self.check_task_exists(task_id=task_id)
         reports = await self.report_rep.get_all_with_any_parameters(task_id=task_id)
         self.logger.debug(
@@ -71,11 +71,10 @@ class ReportService:
         self,
         report_id: int,
     ) -> ReportGetSchemas:
-        self.logger.debug("Starting get_one", extra={"report_id": report_id})
         report = await self.report_rep.one_or_none(id=report_id)
         if not report:
             self.logger.warning("Report not found", extra={"report_id": report_id})
-            raise ObjectNotFoundException
+            raise ObjectNotFoundException(f"Report with report_id {report_id} not found")
         self.logger.debug("Report retrieved successfully", extra={"report_id": report_id})
         return ReportGetSchemas.model_validate(report, from_attributes=True)
 
@@ -134,10 +133,8 @@ class ReportService:
                 "estimated_hours": estimated_hours,
                 "priority": priority,
             })
-
-        try:
+        async with self.uow:
             reports = await self.report_rep.add_bulk(reports_to_create)
-            await self.report_rep.commit()
             self.logger.info(
                 "Reports created successfully",
                 extra={
@@ -146,44 +143,20 @@ class ReportService:
             )
             return [ReportGetSchemas.model_validate(r, from_attributes=True) for r in reports]
 
-        except IntegrityError as ex:
-            await self.report_rep.rollback()
-            self.logger.error(
-                "Database constraint violation during reports creation",
-                extra={
-                    "constraint": getattr(ex.orig, "constraint_name", "unknown"),
-                    "error": str(ex),
-                },
-            )
-            raise
-
-        except Exception as e:
-            await self.report_rep.rollback()
-            self.logger.error(
-                "Report creation failed",
-                extra={
-                    "error": str(e),
-                },
-                exc_info=True,
-            )
-            raise
-
-
     async def delete(
         self,
         report_id: int,
     ) -> ReportGetSchemas:
-        self.logger.info("Starting delete", extra={"report_id": report_id})
         await self.check_report_exists(report_id=report_id)
-        report = await self.report_rep.delete(id=report_id)
-        await self.report_rep.commit()
-        report = ReportGetSchemas.model_validate(report, from_attributes=True)
+        async with self.uow:
+            report = await self.report_rep.delete(id=report_id)
+            report_dto = ReportGetSchemas.model_validate(report, from_attributes=True)
         self.logger.info(
             "Report deleted successfully",
             extra={"report_id": report_id}
         )
         return ReportDeletedResponse(
             status="OK",
-            description=f"Отчет с ид {report.id} удален.",
-            delete_report_info=report,
+            description=f"Отчет с ид {report_dto.id} удален.",
+            delete_report_info=report_dto,
         )

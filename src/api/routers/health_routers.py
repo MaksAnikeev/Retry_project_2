@@ -8,20 +8,18 @@ router = APIRouter(tags=["Health"])
 
 @router.get(
     "/health",
-    status_code=status.HTTP_200_OK,
     response_model=LivenessResponse,
     summary="Liveness probe"
 )
 async def liveness_probe():
     return LivenessResponse(
         status=HealthStatus.OK,
-        service="tasks-api",
+        service="reports-api",
     )
 
 
 @router.get(
     "/ready",
-    status_code=status.HTTP_200_OK,
     response_model=ReadinessResponse,
     summary="Readiness probe"
 )
@@ -36,7 +34,7 @@ async def readiness_probe():
     )
     response = ReadinessResponse(
         status=db_status,
-        service="tasks-api",
+        service="reports-api",
         components=[db_status_info],
     )
 

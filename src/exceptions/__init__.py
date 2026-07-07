@@ -1,6 +1,6 @@
 from src.exceptions.base import BaseDomainException
-from src.exceptions.not_found import ObjectNotFoundException, ReportNotFoundException
-from src.exceptions.conflict import AlreadyExistsException, ReportAlreadyExistsException
+from src.exceptions.not_found import ObjectNotFoundException
+from src.exceptions.already_exists import AlreadyExistsException
 from src.exceptions.validation import (
     MissingRequiredFieldsException, NotAllowedFieldException,
     AtLeastOneFieldRequiredException, EmptyRequestBodyException
@@ -8,7 +8,7 @@ from src.exceptions.validation import (
 
 __all__ = [
     "BaseDomainException",
-    "ObjectNotFoundException", "ReportNotFoundException",
+    "ObjectNotFoundException",
     "AlreadyExistsException", "MissingRequiredFieldsException", "NotAllowedFieldException",
     "AtLeastOneFieldRequiredException", "EmptyRequestBodyException",
 ]

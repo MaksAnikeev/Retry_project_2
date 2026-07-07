@@ -6,6 +6,7 @@ from src.repositories.report_rep import ReportRepository
 from src.services.report_service import ReportService
 
 from src.db import get_session
+from src.repositories.unit_of_work import UnitOfWork
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -15,12 +16,19 @@ def get_report_rep(session: SessionDep) -> ReportRepository:
 
 ReportRepDep = Annotated[ReportRepository, Depends(get_report_rep)]
 
+def get_uow(session: SessionDep) -> UnitOfWork:
+    return UnitOfWork(session=session)
+
+UowDep = Annotated[UnitOfWork, Depends(get_uow)]
+
 
 def get_report_service(
     report_rep: ReportRepDep,
+    uow: UowDep,
 ) -> ReportService:
     return ReportService(
         report_rep=report_rep,
+        uow=uow,
     )
 
 ReportServiceDep = Annotated[ReportService, Depends(get_report_service)]
