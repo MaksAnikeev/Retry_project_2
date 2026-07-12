@@ -4,7 +4,7 @@ import logging
 
 from src.schemas.reports_schemas import ReportDeletedResponse
 
-from src.repositories.unit_of_work import UnitOfWork
+from src.database.unit_of_work import UnitOfWork
 from src.exceptions import ObjectNotFoundException
 from src.repositories.report_rep import ReportRepository
 from src.schemas.reports_schemas import (

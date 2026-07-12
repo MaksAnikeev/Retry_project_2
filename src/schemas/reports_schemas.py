@@ -1,10 +1,10 @@
 import uuid
 from datetime import date
+from typing import Self
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from enum import Enum
 
-from src.schemas.base_schema import ChangeBaseSchema
 
 class Complexity(str, Enum):
     EASY = "easy"
@@ -34,11 +34,28 @@ class TaskAPIGetSchemas(BaseModel):
     finish_date: date = Field(..., description="Плановая дата выполнения задачи")
 
 
-class ReportChangeSchemas(ChangeBaseSchema):
+class ReportChangeSchemas(BaseModel):
     task_id: uuid.UUID = Field(..., description="ИД задачи")
     complexity: Complexity | None = Field(None, description="Сложность выполняемой задачи")
     estimated_hours: float | None = Field(None, description="Время на выполнение задачи")
     priority: Priority | None = Field(None, description="Статус задачи")
+
+    @model_validator(mode="after")
+    def check_unique_task_titles(self) -> Self:
+        if not self.tasks:
+            return self
+        titles = [task.title for task in self.tasks]
+        seen: set[str] = set()
+        duplicates: list[str] = []
+        for title in titles:
+            if title in seen and title not in duplicates:
+                duplicates.append(title)
+            seen.add(title)
+        if duplicates:
+            raise ValueError(
+                f"Duplicate task titles: {duplicates}"
+            )
+        return self
 
 
 example_change_task = {

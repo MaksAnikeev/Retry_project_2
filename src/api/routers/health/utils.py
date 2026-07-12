@@ -3,7 +3,7 @@ import logging
 
 from sqlalchemy import text
 
-from src.db import async_session_factory
+from src.database.db import async_session_factory
 
 
 class HealthDB:

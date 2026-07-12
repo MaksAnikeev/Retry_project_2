@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.repositories.report_rep import ReportRepository
 from src.services.report_service import ReportService
 
-from src.db import get_session
-from src.repositories.unit_of_work import UnitOfWork
+from src.database.db import get_session
+from src.database.unit_of_work import UnitOfWork
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
