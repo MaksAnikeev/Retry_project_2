@@ -1,8 +1,6 @@
-import logging
 from typing import Any, Generic, TypeVar, Type
 
-from sqlalchemy import select, insert, update, delete, ColumnElement
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select, insert, delete, ColumnElement
 from sqlalchemy.ext.asyncio import AsyncSession
 
 Model = TypeVar("Model")
@@ -30,27 +28,11 @@ class BaseRepository(Generic[Model, Schema]):
         result = query_result.scalars().one_or_none()
         return result
 
-    async def add_bulk(self, data_list: list[dict]) -> list[Model]:
-        if not data_list:
-            return []
-
-        stmt = insert(self.model).values(data_list).returning(self.model)
-        result = await self.session.execute(stmt)
-        await self.session.flush()
-        return list(result.scalars().all())
-
-    async def delete(self, **filters: Any) -> Model:
-        query = select(self.model).filter_by(**filters)
-        query_result = await self.session.execute(query)
-        result = query_result.scalars().one_or_none()
+    async def delete(self, **filters: Any) -> Model | None:
         stmt = (
-            delete(self.model).where(self.model.id == result.id).returning(self.model)
+            delete(self.model)
+            .filter_by(**filters)
+            .returning(self.model)
         )
-        delete_result = await self.session.execute(stmt)
-        return delete_result
-
-    async def commit(self):
-        await self.session.commit()
-
-    async def rollback(self):
-        await self.session.rollback()
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()

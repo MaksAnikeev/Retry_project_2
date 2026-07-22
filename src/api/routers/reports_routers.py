@@ -9,7 +9,7 @@ from src.schemas.reports_schemas import ReportGetSchemas, TaskAPIGetSchemas, Rep
 router = APIRouter(prefix="/reports", tags=["Отчеты"])
 
 
-@router.get("/user", summary="Получить все отчеты по задачам пользователя")
+@router.get("/user/{user_id}", summary="Получить все отчеты по задачам пользователя")
 async def get_reports_by_user(
     user_id: uuid.UUID,
     service: ReportServiceDep
@@ -17,7 +17,7 @@ async def get_reports_by_user(
     return await service.get_all_to_user(user_id=user_id)
 
 
-@router.get("/task", summary="Получить все отчеты по задаче")
+@router.get("/task/{task_id}", summary="Получить все отчеты по задаче")
 async def get_reports_by_task(
     task_id: uuid.UUID,
     service: ReportServiceDep

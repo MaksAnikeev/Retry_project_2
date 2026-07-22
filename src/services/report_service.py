@@ -12,7 +12,6 @@ from src.schemas.reports_schemas import (
     ReportGetSchemas,
     Complexity,
     Priority,
-    ReportCreateSchemas
 )
 
 logger = logging.getLogger(__name__)
@@ -82,8 +81,6 @@ class ReportService:
         self,
         tasks_info: list[TaskAPIGetSchemas],
     ) -> list[ReportGetSchemas]:
-        self.logger.info("Starting add_reports_batch")
-
         if not tasks_info:
             self.logger.info("Finish add_reports_batch. No tasks found")
             return []
@@ -91,14 +88,6 @@ class ReportService:
         reports_to_create = []
 
         for task_info in tasks_info:
-            self.logger.info(
-                "Starting calculate task",
-                extra={
-                    "task_id": str(task_info.task_id),
-                    "user_id": str(task_info.user_id),
-                    "finish_date": str(task_info.finish_date),
-                }
-            )
             days_left = (task_info.finish_date - date.today()).days
             text_len = len(task_info.description or task_info.title)
 
@@ -114,18 +103,6 @@ class ReportService:
                 else Priority.HIGH if days_left <= 3
                 else Priority.MEDIUM
             )
-            self.logger.debug(
-                "Report parameters calculated",
-                extra={
-                    "task_id": str(task_info.task_id),
-                    "complexity": complexity,
-                    "estimated_hours": estimated_hours,
-                    "priority": priority,
-                    "days_left": days_left,
-                    "text_len": text_len,
-                }
-            )
-
             reports_to_create.append({
                 "task_id": task_info.task_id,
                 "user_id": task_info.user_id,
@@ -135,21 +112,24 @@ class ReportService:
             })
         async with self.uow:
             reports = await self.report_rep.add_bulk(reports_to_create)
-            self.logger.info(
-                "Reports created successfully",
-                extra={
-                    "quantity_reports": len(reports),
-                }
-            )
-            return [ReportGetSchemas.model_validate(r, from_attributes=True) for r in reports]
+        self.logger.info(
+            "Reports created successfully",
+            extra={
+                "quantity_reports": len(reports),
+            }
+        )
+        return [ReportGetSchemas.model_validate(r, from_attributes=True) for r in reports]
 
     async def delete(
         self,
         report_id: int,
-    ) -> ReportGetSchemas:
-        await self.check_report_exists(report_id=report_id)
+    ) -> ReportDeletedResponse:
         async with self.uow:
             report = await self.report_rep.delete(id=report_id)
+            if report is None:
+                raise ObjectNotFoundException(
+                    detail=f"Отчет с id {report_id} не найден или уже удален"
+                )
             report_dto = ReportGetSchemas.model_validate(report, from_attributes=True)
         self.logger.info(
             "Report deleted successfully",

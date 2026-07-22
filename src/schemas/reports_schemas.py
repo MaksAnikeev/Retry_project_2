@@ -18,12 +18,15 @@ class Priority(str, Enum):
     URGENT = "urgent"
 
 
-class ReportCreateSchemas(BaseModel):
+class BaseReportSchemas(BaseModel):
     task_id: uuid.UUID = Field(..., description="ИД задачи")
-    user_id: uuid.UUID = Field(..., description="ИД пользователя")
     complexity: Complexity = Field(..., description="Сложность выполняемой задачи")
     estimated_hours: float = Field(..., description="Время на выполнение задачи")
     priority: Priority = Field(..., description="Статус задачи")
+
+
+class ReportCreateSchemas(BaseReportSchemas):
+    user_id: uuid.UUID = Field(..., description="ИД пользователя")
 
 
 class TaskAPIGetSchemas(BaseModel):
@@ -74,11 +77,9 @@ example_change_task = {
     },
 }
 
-class ReportGetSchemas(BaseModel):
-    task_id: uuid.UUID = Field(..., description="ИД задачи")
-    complexity: Complexity = Field(..., description="Сложность выполняемой задачи")
-    estimated_hours: float = Field(..., description="Время на выполнение задачи")
-    priority: Priority = Field(..., description="Статус задачи")
+
+class ReportGetSchemas(BaseReportSchemas):
+    pass
 
 
 class ReportDeletedResponse(BaseModel):

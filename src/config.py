@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     DB_NAME: str
 
     LOG_LEVEL: str = "INFO"
+    LOG_FORMAT_TYPE: str = ""
 
     @property
     def DATABASE_URL_asyncpg(self) -> str:
@@ -34,3 +35,5 @@ class Settings(BaseSettings):
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     return Settings()
+
+settings = get_settings()
