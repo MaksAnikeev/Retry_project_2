@@ -1,4 +1,5 @@
 from src.exceptions.base import BaseDomainException
+from src.exceptions.kafka_exception import KafkaProducerNotStartedError, KafkaException, KafkaSendError
 from src.exceptions.not_found import ObjectNotFoundException
 from src.exceptions.already_exists import AlreadyExistsException
 from src.exceptions.validation import (
@@ -11,4 +12,5 @@ __all__ = [
     "ObjectNotFoundException",
     "AlreadyExistsException", "MissingRequiredFieldsException", "NotAllowedFieldException",
     "AtLeastOneFieldRequiredException", "EmptyRequestBodyException",
+    "KafkaProducerNotStartedError", "KafkaException", "KafkaSendError"
 ]

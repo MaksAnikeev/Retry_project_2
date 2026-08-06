@@ -1,10 +1,9 @@
 from sqlalchemy.dialects.postgresql import insert
 from src.models.reports import ReportsORM
 from src.repositories.base import BaseRepository
-from src.schemas.reports_schemas import ReportGetSchemas
 
 
-class ReportRepository(BaseRepository[ReportsORM, ReportGetSchemas]):
+class ReportRepository(BaseRepository[ReportsORM]):
     model = ReportsORM
 
     async def add_bulk(self, reports_data: list[dict]) -> list[ReportsORM]:

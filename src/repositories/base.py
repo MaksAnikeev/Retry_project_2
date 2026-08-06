@@ -1,12 +1,11 @@
 from typing import Any, Generic, TypeVar, Type
 
-from sqlalchemy import select, insert, delete, ColumnElement
+from sqlalchemy import select, delete, ColumnElement
 from sqlalchemy.ext.asyncio import AsyncSession
 
 Model = TypeVar("Model")
-Schema = TypeVar("Schema")
 
-class BaseRepository(Generic[Model, Schema]):
+class BaseRepository(Generic[Model]):
     model: Type[Model]
     session: AsyncSession
 

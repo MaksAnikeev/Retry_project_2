@@ -23,6 +23,17 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT_TYPE: str = ""
 
+    DLQ_TOPIC: str
+
+    # --------------------KAFKA-------------------------
+    KAFKA_BOOTSTRAP_SERVERS: str
+
+    # --------------------ORDER_CONSUMER-------------------------
+    ORDER_TOPIC : str
+    ORDER_AGGREGATE_TYPE : str
+    ORDER_EVENT_TYPE : str
+    ORDER_CONSUMER_GROUP_ID: str
+
     @property
     def DATABASE_URL_asyncpg(self) -> str:
         user = quote_plus(self.DB_USER)

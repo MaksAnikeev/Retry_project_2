@@ -129,3 +129,11 @@ def setup_logging(level: str = "INFO") -> None:
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("celery").setLevel(logging.INFO)
+
+    logging.getLogger("aiokafka").setLevel(logging.WARNING)
+    logging.getLogger("aiokafka.conn").setLevel(logging.WARNING)
+    logging.getLogger("aiokafka.cluster").setLevel(logging.WARNING)
+    logging.getLogger("aiokafka.consumer").setLevel(logging.INFO)
+    logging.getLogger("aiokafka.producer").setLevel(logging.INFO)
+    logging.getLogger("aiokafka.consumer.fetcher").setLevel(logging.WARNING)
+    logging.getLogger("aiokafka.consumer.group_coordinator").setLevel(logging.INFO)

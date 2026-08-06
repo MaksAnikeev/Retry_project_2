@@ -3,7 +3,7 @@ from typing import List
 
 from fastapi import APIRouter
 
-from src.dependencies.dependencies import ReportServiceDep
+from src.dependencies.dependencies_reports import ReportServiceDep
 from src.schemas.reports_schemas import ReportGetSchemas, TaskAPIGetSchemas, ReportDeletedResponse
 
 router = APIRouter(prefix="/reports", tags=["Отчеты"])
