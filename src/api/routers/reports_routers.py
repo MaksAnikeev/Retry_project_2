@@ -27,7 +27,7 @@ async def get_reports_by_task(
 
 @router.get("/{report_id}", summary="Получить отчеты по ид")
 async def get_report(
-    report_id: int,
+    report_id: uuid.UUID,
     service: ReportServiceDep
 ) -> ReportGetSchemas:
     return await service.get_one(report_id=report_id)
@@ -43,7 +43,7 @@ async def add_report(
 
 @router.delete("/{report_id}", summary="Удалить отчет по ИД")
 async def del_report(
-    report_id: int,
+    report_id: uuid.UUID,
     service: ReportServiceDep
 ) -> ReportDeletedResponse:
     return await service.delete(report_id=report_id)

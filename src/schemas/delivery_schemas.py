@@ -9,3 +9,4 @@ class DeliveryPayloadSchema(BaseModel):
     description: str | None = None
     price: int
     quantity: int
+    event_id: uuid.UUID

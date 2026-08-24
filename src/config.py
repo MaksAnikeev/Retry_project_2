@@ -30,9 +30,8 @@ class Settings(BaseSettings):
 
     # --------------------ORDER_CONSUMER-------------------------
     ORDER_TOPIC : str
-    ORDER_AGGREGATE_TYPE : str
-    ORDER_EVENT_TYPE : str
     ORDER_CONSUMER_GROUP_ID: str
+    MAX_RETRY_ATTEMPTS: int
 
     @property
     def DATABASE_URL_asyncpg(self) -> str:

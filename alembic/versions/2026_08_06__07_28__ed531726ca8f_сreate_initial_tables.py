@@ -71,7 +71,9 @@ def upgrade() -> None:
     )
     op.create_table(
         "reports",
-        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column(
+            "id", sa.Uuid(), server_default=sa.text("gen_random_uuid()"), nullable=False
+        ),
         sa.Column("task_id", sa.UUID(), nullable=False),
         sa.Column("user_id", sa.UUID(), nullable=False),
         sa.Column("complexity", sa.String(length=50), nullable=False),

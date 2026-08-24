@@ -42,7 +42,7 @@ class ReportService:
             self.logger.warning("Task not found", extra={"task_id": str(task_id)})
             raise ObjectNotFoundException(f"Task with task_id:{task_id} not found")
 
-    async def check_report_exists(self, report_id: int) -> None:
+    async def check_report_exists(self, report_id: uuid.UUID) -> None:
         report = await self.report_rep.one_or_none(id=report_id)
         if not report:
             self.logger.warning("Report not found", extra={"report_id": report_id})
@@ -68,7 +68,7 @@ class ReportService:
 
     async def get_one(
         self,
-        report_id: int,
+        report_id: uuid.UUID,
     ) -> ReportGetSchemas:
         report = await self.report_rep.one_or_none(id=report_id)
         if not report:
@@ -122,7 +122,7 @@ class ReportService:
 
     async def delete(
         self,
-        report_id: int,
+        report_id: uuid.UUID,
     ) -> ReportDeletedResponse:
         async with self.uow:
             report = await self.report_rep.delete(id=report_id)

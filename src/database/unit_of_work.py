@@ -32,6 +32,7 @@ class UnitOfWork:
     async def commit(self) -> None:
         if self.session.in_transaction():
             await self.session.commit()
+            self.session.expire_all()
 
     async def rollback(self) -> None:
         if self.session.in_transaction():

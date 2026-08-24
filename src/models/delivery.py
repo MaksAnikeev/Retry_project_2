@@ -10,12 +10,6 @@ from src.models import Base
 class DeliveryORM(Base):
     __tablename__ = "deliveries"  # ← Исправлено
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid,
-        primary_key=True,
-        default=uuid.uuid4,
-        server_default=text("gen_random_uuid()"),
-    )
     user_id: Mapped[uuid.UUID] = mapped_column(
         Uuid,
         nullable=False,
@@ -44,7 +38,7 @@ class DeliveryORM(Base):
         nullable=False,
         comment="Статус доставки: processing, delivery, completed, failed",
     )
-    driver_id: Mapped[int | None] = mapped_column(
+    driver_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid,
         nullable=True,
         comment="ID водителя (случайное число)",
