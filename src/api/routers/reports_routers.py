@@ -34,7 +34,7 @@ async def get_report(
 
 
 @router.post("", summary="Добавить отчет на задачу")
-async def add_report(
+async def create_report(
     tasks_info: list[TaskAPIGetSchemas],
     service: ReportServiceDep
 ) -> list[ReportGetSchemas]:
@@ -42,7 +42,7 @@ async def add_report(
 
 
 @router.delete("/{report_id}", summary="Удалить отчет по ИД")
-async def del_report(
+async def delete_report(
     report_id: uuid.UUID,
     service: ReportServiceDep
 ) -> ReportDeletedResponse:

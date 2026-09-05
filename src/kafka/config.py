@@ -1,4 +1,3 @@
-import json
 from collections.abc import Callable
 from typing import Any
 
@@ -10,9 +9,6 @@ from src.config import settings
 class KafkaProducerConfig(BaseModel):
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
-    )
-    value_serializer: Callable = Field(
-        default=lambda v: json.dumps(v).encode("utf-8"),
     )
     key_serializer: Callable = Field(
         default=lambda k: (
@@ -34,9 +30,6 @@ kafka_producer_config = KafkaProducerConfig()
 class KafkaConsumerConfig(BaseModel):
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
-    )
-    value_deserializer: Callable[[bytes], dict] = Field(
-        default=lambda v: json.loads(v.decode("utf-8")),
     )
     key_deserializer: Callable[[bytes], str | None] = Field(
         default=lambda k: k.decode("utf-8") if k else None,

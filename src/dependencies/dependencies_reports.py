@@ -1,25 +1,17 @@
 from typing import Annotated
-from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from fastapi import Depends
+
+from src.database.db import SessionDep
+from src.dependencies.dependencies_uow import UowDep
 from src.repositories.report_rep import ReportRepository
 from src.services.report_service import ReportService
-
-from src.database.db import get_session
-from src.database.unit_of_work import UnitOfWork
-
-SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
 
 def get_report_rep(session: SessionDep) -> ReportRepository:
     return ReportRepository(session=session)
 
 ReportRepDep = Annotated[ReportRepository, Depends(get_report_rep)]
-
-def get_uow(session: SessionDep) -> UnitOfWork:
-    return UnitOfWork(session=session)
-
-UowDep = Annotated[UnitOfWork, Depends(get_uow)]
 
 
 def get_report_service(

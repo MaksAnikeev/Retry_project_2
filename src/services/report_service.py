@@ -112,13 +112,17 @@ class ReportService:
             })
         async with self.uow:
             reports = await self.report_rep.add_bulk(reports_to_create)
+            result = [
+                ReportGetSchemas.model_validate(r, from_attributes=True)
+                for r in reports
+            ]
         self.logger.info(
             "Reports created successfully",
             extra={
                 "quantity_reports": len(reports),
             }
         )
-        return [ReportGetSchemas.model_validate(r, from_attributes=True) for r in reports]
+        return result
 
     async def delete(
         self,

@@ -1,15 +1,26 @@
 import asyncio
-import base64
 import logging
-import uuid
 
-from aiokafka import AIOKafkaConsumer, ConsumerRecord
+from aiokafka import ConsumerRecord
+from pydantic import ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from src.exceptions import ObjectNotFoundException
-from src.kafka.dlq_sendler import DLQSender
+from src.database.unit_of_work import UnitOfWork
+from src.kafka.dlq_sender import DLQSender
 from src.kafka.error_config import NON_RETRYABLE_ERRORS, RETRYABLE_ERRORS
-from src.kafka.kafka_producer import KafkaProducerClient
-from src.schemas.delivery_schemas import DeliveryPayloadSchema
+from src.kafka.kafka_consumer import KafkaConsumerClient
+from src.kafka.retry_publisher import RetryPublisher
+from src.mappers.delivery_mapper import to_delivery_schema
+from src.mappers.kafka_mapper import decode_key, to_headers_dict, to_payload_dict
+from src.mappers.order_massage_mapper import (
+    to_order_dql_message,
+)
+from src.repositories.delivery_rep import DeliveryRepository
+from src.schemas.order_incoming_schemas import (
+    IncomingOrderHeadersSchema,
+    IncomingOrderMessage,
+    OrderPayloadSchema,
+)
 from src.services.delivery_service import DeliveryService
 
 
@@ -17,17 +28,17 @@ class OrderConsumer:
 
     def __init__(
         self,
-        consumer: AIOKafkaConsumer,
-        kafka_producer: KafkaProducerClient,
-        delivery_service: DeliveryService,
+        consumer: KafkaConsumerClient,
+        retry_publisher: RetryPublisher,
         dlq_sender: DLQSender,
-        max_retry_attempts: int = 3
+        max_retry_attempts: int,
+        session_factory: async_sessionmaker[AsyncSession],
     ) -> None:
         self.consumer = consumer
-        self.kafka_producer = kafka_producer
-        self.delivery_service = delivery_service
+        self.retry_publisher = retry_publisher
         self.dlq_sender = dlq_sender
         self.max_retry_attempts = max_retry_attempts
+        self.session_factory = session_factory
 
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -48,45 +59,53 @@ class OrderConsumer:
             return
 
         try:
-            event_id = self._extract_event_id(message)
-            data = {**message.value, "event_id": event_id}
-            payload_schema = DeliveryPayloadSchema.model_validate(data)
-
-            await self.delivery_service.process_delivery_message(
-                payload_schema=payload_schema,
-            )
-            await self.consumer.commit()
-
-        except RETRYABLE_ERRORS as e:
-            await self._handle_error(message, e, is_retryable=True)
-
-        except NON_RETRYABLE_ERRORS as e:
+            incoming = self._parse_incoming_message(message)
+        except (ValidationError, ValueError) as e:
             await self._send_to_dlq(message, e, is_retryable=False)
+            return
 
+        async with self.session_factory() as session:
+            uow = UnitOfWork(session=session)
+            repo = DeliveryRepository(session=session)
+            service = DeliveryService(delivery_rep=repo, uow=uow)
 
-    def _extract_event_id(self, message: ConsumerRecord) -> uuid.UUID:
-        headers = self._extract_headers(message)
-        event_id_str = headers.get("event-id")
-        if not event_id_str:
-            raise ObjectNotFoundException(detail="event-id header not found")
-        return uuid.UUID(event_id_str)
-
-    def _extract_headers(self, message: ConsumerRecord) -> dict[str, str]:
-        if message.headers is None:
-            return {}
-        headers = {}
-        for key, value in message.headers:
             try:
-                headers[key] = value.decode("utf-8")
-            except UnicodeDecodeError:
-                encoded = base64.b64encode(value).decode("ascii")
-                headers[key] = f"base64:{encoded}"
-        return headers
+                payload_schema = to_delivery_schema(message_schema=incoming)
+
+                async with uow:
+                    await service.process_delivery_message(
+                        payload_schema=payload_schema,
+                    )
+                await self.consumer.commit()
+
+            except RETRYABLE_ERRORS as e:
+                await self._handle_error(message, e, incoming, is_retryable=True)
+
+            except NON_RETRYABLE_ERRORS as e:
+                await self._send_to_dlq(message, e, is_retryable=False)
+
+
+    def _parse_incoming_message(
+        self,
+        message: ConsumerRecord,
+    ) -> IncomingOrderMessage:
+        raw_headers = to_headers_dict(message.headers)
+        headers_schema = IncomingOrderHeadersSchema.model_validate(raw_headers)
+        payload_dict = to_payload_dict(message.value)
+        payload_schema = OrderPayloadSchema.model_validate(payload_dict)
+        return IncomingOrderMessage(
+            headers=headers_schema,
+            payload=payload_schema,
+            topic=message.topic,
+            partition_key=decode_key(message.key),
+            offset=message.offset,
+        )
 
     async def _handle_error(
         self,
         message: ConsumerRecord,
         error: Exception,
+        incoming: IncomingOrderMessage,
         is_retryable: bool,
     ) -> None:
         error_message = f"{type(error).__name__}: {str(error)}"
@@ -98,70 +117,25 @@ class OrderConsumer:
                 "offset": message.offset,
             },
         )
-        retry_count = self._extract_retry_count(message)
+        retry_count = incoming.headers.retry_count
         if retry_count >= self.max_retry_attempts:
             await self._send_to_dlq(message, error, is_retryable=True)
             return
-        await self._retry_message(message, retry_count + 1)
-
-    def _extract_retry_count(self, message: ConsumerRecord) -> int:
-        if not message.headers:
-            return 0
-
-        for key, value in message.headers:
-            if key == "retry-count":
-                try:
-                    return int(value.decode("utf-8"))
-                except (ValueError, AttributeError):
-                    return 0
-        return 0
-
-    async def _retry_message(
-        self,
-        message: ConsumerRecord,
-        new_retry_count: int,
-    ) -> None:
-        headers = dict(message.headers) if message.headers else {}
-        headers["retry-count"] = str(new_retry_count).encode("utf-8")
-
-        await self.kafka_producer.send_message(
-            topic=message.topic,
-            value=message.value,
-            key=message.key,
-            headers=headers,
-        )
-
-        self.logger.info(
-            "Message retried",
-            extra={
-                "topic": message.topic,
-                "offset": message.offset,
-                "retry_count": new_retry_count,
-            },
+        await self.retry_publisher.publish_retry(
+            incoming=incoming,
+            new_retry_count=retry_count + 1,
         )
         await self.consumer.commit()
 
     async def _send_to_dlq(
         self,
-        message: ConsumerRecord,
+        record: ConsumerRecord,
         error: Exception,
         is_retryable: bool,
     ) -> None:
-        payload = message.value if isinstance(message.value, dict) else {"raw": str(message.value)}
-        headers = self._extract_headers(message)
-        partition_key = (
-            message.key.decode("utf-8")
-            if isinstance(message.key, bytes)
-            else message.key
-        )
-        error_message = f"{type(error).__name__}: {str(error)}"
-        await self.dlq_sender.send_to_dlq(
-            original_topic=message.topic,
-            original_payload=payload,
-            original_partition_key=partition_key,
-            original_headers=headers,
-            offset=message.offset,
-            error_message=error_message,
-            is_retryable=is_retryable,
-        )
+        dlq_message = to_order_dql_message(
+            record=record,
+            error=error,
+            is_retryable=is_retryable)
+        await self.dlq_sender.send_to_dlq(dlq_message=dlq_message)
         await self.consumer.commit()

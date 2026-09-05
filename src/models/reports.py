@@ -9,7 +9,6 @@ from src.models import Base
 class ReportsORM(Base):
     __tablename__ = "reports"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
     task_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         unique=True,
